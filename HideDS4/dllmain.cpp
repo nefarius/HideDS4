@@ -68,11 +68,13 @@ int init(void);
 // called on DLL load
 BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID)
 {
+	// we don't care about thread attachments/detachments
 	DisableThreadLibraryCalls(static_cast<HMODULE>(hInstance));
 
 	if (dwReason != DLL_PROCESS_ATTACH)
 		return FALSE;
 
+	// loader lock active; begin work in new thread
 	return CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(init), nullptr, 0, nullptr) > nullptr;
 }
 
