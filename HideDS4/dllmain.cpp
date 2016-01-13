@@ -40,8 +40,8 @@ inline MH_STATUS MH_CreateHookApiEx(
 		pszModule, pszProcName, pDetour, reinterpret_cast<LPVOID*>(ppOriginal));
 }
 
-// type definition of CreateFile(...) WinAPI
-typedef HANDLE(WINAPI* tCreateFile)(
+// type definition of CreateFileW(...) WinAPI
+typedef HANDLE(WINAPI* tCreateFileW)(
 	_In_     LPCWSTR               lpFileName,
 	_In_     DWORD                 dwDesiredAccess,
 	_In_     DWORD                 dwShareMode,
@@ -51,11 +51,35 @@ typedef HANDLE(WINAPI* tCreateFile)(
 	_In_opt_ HANDLE                hTemplateFile
 	);
 // pointer to original function
-tCreateFile OriginalCreateFile = nullptr;
+tCreateFileW OriginalCreateFileW = nullptr;
 
 // declaration of hooked function
-HANDLE WINAPI DetourCreateFile(
+HANDLE WINAPI DetourCreateFileW(
 	_In_     LPCWSTR               lpFileName,
+	_In_     DWORD                 dwDesiredAccess,
+	_In_     DWORD                 dwShareMode,
+	_In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	_In_     DWORD                 dwCreationDisposition,
+	_In_     DWORD                 dwFlagsAndAttributes,
+	_In_opt_ HANDLE                hTemplateFile
+	);
+
+// type definition of CreateFileA(...) WinAPI
+typedef HANDLE(WINAPI* tCreateFileA)(
+	_In_     LPCSTR                lpFileName,
+	_In_     DWORD                 dwDesiredAccess,
+	_In_     DWORD                 dwShareMode,
+	_In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	_In_     DWORD                 dwCreationDisposition,
+	_In_     DWORD                 dwFlagsAndAttributes,
+	_In_opt_ HANDLE                hTemplateFile
+	);
+// pointer to original function
+tCreateFileA OriginalCreateFileA = nullptr;
+
+// declaration of hooked function
+HANDLE WINAPI DetourCreateFileA(
+	_In_     LPCSTR                lpFileName,
 	_In_     DWORD                 dwDesiredAccess,
 	_In_     DWORD                 dwShareMode,
 	_In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
@@ -94,13 +118,13 @@ int init()
 	}
 
 	// create kernel32!CreateFileW hook (unicode)
-	if (MH_CreateHookApiEx(L"kernel32", "CreateFileW", &DetourCreateFile, &OriginalCreateFile) != MH_OK)
+	if (MH_CreateHookApiEx(L"kernel32", "CreateFileW", &DetourCreateFileW, &OriginalCreateFileW) != MH_OK)
 	{
 		return -2;
 	}
 
-	// enable hook
-	if (MH_EnableHook(GetProcAddress(GetModuleHandle(L"kernel32"), "CreateFileW")) != MH_OK)
+	// create kernel32!CreateFileA hook (ANSI)
+	if (MH_CreateHookApiEx(L"kernel32", "CreateFileA", &DetourCreateFileA, &OriginalCreateFileA) != MH_OK)
 	{
 		return -3;
 	}
@@ -111,8 +135,8 @@ int init()
 		return -4;
 	}
 
-	// enable hook
-	if (MH_EnableHook(GetProcAddress(GetModuleHandle(L"kernel32"), "IsDebuggerPresent")) != MH_OK)
+	// enable all hooks
+	if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK)
 	{
 		return -5;
 	}
@@ -121,8 +145,8 @@ int init()
 	return WaitForSingleObject(INVALID_HANDLE_VALUE, INFINITE);
 }
 
-// fake/hooked CreateFile function
-HANDLE WINAPI DetourCreateFile(
+// fake/hooked CreateFileW function (unicode)
+HANDLE WINAPI DetourCreateFileW(
 	_In_     LPCWSTR               lpFileName,
 	_In_     DWORD                 dwDesiredAccess,
 	_In_     DWORD                 dwShareMode,
@@ -133,7 +157,7 @@ HANDLE WINAPI DetourCreateFile(
 	)
 {
 	// identify open call for DualShock 4 device
-	if (StrStr(lpFileName, L"\\\\?\\hid#vid_054c&pid_05c4") != nullptr)
+	if (StrStrW(lpFileName, L"\\\\?\\hid#vid_054c&pid_05c4") != nullptr)
 	{
 		// fake open error
 		SetLastError(ERROR_FILE_NOT_FOUND);
@@ -142,7 +166,31 @@ HANDLE WINAPI DetourCreateFile(
 	}
 
 	// legit call, forward to original function
-	return OriginalCreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	return OriginalCreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
+// fake/hooked CreateFileA function (ANSI)
+HANDLE WINAPI DetourCreateFileA(
+	_In_     LPCSTR                lpFileName,
+	_In_     DWORD                 dwDesiredAccess,
+	_In_     DWORD                 dwShareMode,
+	_In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	_In_     DWORD                 dwCreationDisposition,
+	_In_     DWORD                 dwFlagsAndAttributes,
+	_In_opt_ HANDLE                hTemplateFile
+	)
+{
+	// identify open call for DualShock 4 device
+	if (StrStrA(lpFileName, "\\\\?\\hid#vid_054c&pid_05c4") != nullptr)
+	{
+		// fake open error
+		SetLastError(ERROR_FILE_NOT_FOUND);
+		// fake return value
+		return INVALID_HANDLE_VALUE;
+	}
+
+	// legit call, forward to original function
+	return OriginalCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
 // there is no debugger!
