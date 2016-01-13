@@ -27,8 +27,9 @@ SOFTWARE.
 #pragma once
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <string>
 #include <MinHook.h>
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi")
 
 // MinHook helper function
 template <typename T>
@@ -131,11 +132,8 @@ HANDLE WINAPI DetourCreateFile(
 	_In_opt_ HANDLE                hTemplateFile
 	)
 {
-	// wrap file name in unicode string
-	std::wstring fileName(lpFileName);
-
 	// identify open call for DualShock 4 device
-	if (fileName.find(L"\\\\?\\hid#vid_054c&pid_05c4") != std::wstring::npos)
+	if (StrStr(lpFileName, L"\\\\?\\hid#vid_054c&pid_05c4") != nullptr)
 	{
 		// fake open error
 		SetLastError(ERROR_FILE_NOT_FOUND);
