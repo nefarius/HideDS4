@@ -63,6 +63,11 @@ HANDLE WINAPI DetourCreateFile(
 	_In_opt_ HANDLE                hTemplateFile
 	);
 
+// just an extra layer of "security" ;)
+typedef BOOL (WINAPI* tIsDebuggerPresent)(void);
+tIsDebuggerPresent OriginalIsDebuggerPresent = nullptr;
+BOOL WINAPI DetourIsDebuggerPresent(void);
+
 int init(void);
 
 // called on DLL load
@@ -99,6 +104,18 @@ int init()
 		return -3;
 	}
 
+	// create kernel32!IsDebuggerPresent hook
+	if (MH_CreateHookApiEx(L"kernel32", "IsDebuggerPresent", &DetourIsDebuggerPresent, &OriginalIsDebuggerPresent) != MH_OK)
+	{
+		return -4;
+	}
+
+	// enable hook
+	if (MH_EnableHook(GetProcAddress(GetModuleHandle(L"kernel32"), "IsDebuggerPresent")) != MH_OK)
+	{
+		return -5;
+	}
+
 	// block this thread infinitely to keep hooks active
 	return WaitForSingleObject(INVALID_HANDLE_VALUE, INFINITE);
 }
@@ -128,4 +145,11 @@ HANDLE WINAPI DetourCreateFile(
 
 	// legit call, forward to original function
 	return OriginalCreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
+// there is no debugger!
+BOOL WINAPI DetourIsDebuggerPresent(void)
+{
+	// ofc. not! =)
+	return FALSE;
 }
