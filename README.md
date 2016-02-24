@@ -1,6 +1,10 @@
 # HideDS4
 A small helper-library which prevents a process from accessing a connected DualShock 4 controller
 
+## What's this?
+
+Uuhh..
+
 ## How to use
 1. Either clone this repository and compile the library yourself or [download the latest release](../../releases/latest).
 2. [Get my DLL injector utility](../../../Injector/releases/latest) or use you own.
