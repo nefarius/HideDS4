@@ -8,3 +8,4 @@ A small helper-library which prevents a process from accessing a connected DualS
 4. Launch your target process (the game).
 5. Enter command line `Injector.exe --inject --module-name HideDS4.dll --process-name witcher3.exe` to load the DLL into the game.
 6. If the DualShock 4 is connected, re-connect it for the fix to kick in.
+7. Enjoy!
