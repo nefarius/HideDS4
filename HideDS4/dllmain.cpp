@@ -88,10 +88,6 @@ HANDLE WINAPI DetourCreateFileA(
 	_In_opt_ HANDLE                hTemplateFile
 	);
 
-// just an extra layer of "security" ;)
-typedef BOOL (WINAPI* tIsDebuggerPresent)(void);
-tIsDebuggerPresent OriginalIsDebuggerPresent = nullptr;
-BOOL WINAPI DetourIsDebuggerPresent(void);
 
 int init(void);
 
@@ -127,12 +123,6 @@ int init()
 	if (MH_CreateHookApiEx(L"kernel32", "CreateFileA", &DetourCreateFileA, &OriginalCreateFileA) != MH_OK)
 	{
 		return -3;
-	}
-
-	// create kernel32!IsDebuggerPresent hook
-	if (MH_CreateHookApiEx(L"kernel32", "IsDebuggerPresent", &DetourIsDebuggerPresent, &OriginalIsDebuggerPresent) != MH_OK)
-	{
-		return -4;
 	}
 
 	// enable all hooks
@@ -193,9 +183,3 @@ HANDLE WINAPI DetourCreateFileA(
 	return OriginalCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
-// there is no debugger!
-BOOL WINAPI DetourIsDebuggerPresent(void)
-{
-	// ofc. not! =)
-	return FALSE;
-}
