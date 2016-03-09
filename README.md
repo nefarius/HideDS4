@@ -2,8 +2,7 @@
 A small helper-library which prevents a process from accessing a connected DualShock 4 controller
 
 ## What's this?
-
-Uuhh..
+A Proof-of-Concept, nothing more, nothing less. It's a small DLL which hides the Sony DualShock 4 Controller from any Windows process it gets injected into. It accomplishes this by hooking the [`CreateFile`](https://msdn.microsoft.com/en-us/library/windows/desktop/aa363858(v=vs.85).aspx) Windows API using [MinHook](https://github.com/TsudaKageyu/minhook).
 
 ## How to use
 1. Either clone this repository and compile the library yourself or [download the latest release](../../releases/latest).
